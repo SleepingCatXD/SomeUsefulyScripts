@@ -1,0 +1,72 @@
+#!/bin/bash
+STATUS_FILE="/tmp/obs-recording-status"
+IP="localhost"
+PORT="4455"
+PASSWORD="dfBkRF0dwEP46Rxu"
+
+# Detect available dialog tool
+detect_dialog_tool() {
+    if command -v kdialog >/dev/null 2>&1; then
+        echo "kdialog"
+    elif command -v zenity >/dev/null 2>&1; then
+        echo "zenity"
+    else
+        echo "none"
+    fi
+}
+
+# Display error dialog
+show_error_dialog() {
+    local message="$1"
+    local tool=$(detect_dialog_tool)
+
+    case "$tool" in
+        "kdialog")
+            kdialog --error "$message" --title "OBS Recording Error"
+            ;;
+        "zenity")
+            zenity --error --text="$message"
+            ;;
+        "none")
+            echo "No dialog tool available. Error: $message" >&2
+            ;;
+    esac
+}
+
+# Check if status file and run/stop recording
+if [ ! -f "$STATUS_FILE" ]; then
+    echo "Starting recording..."
+    output=$(obs-cmd --websocket "obsws://$IP:$PORT/$PASSWORD" recording start 2>&1)
+    exit_code=$?
+
+    if [ $exit_code -eq 0 ]; then
+        echo "1" > "$STATUS_FILE"
+        echo "Recording started successfully."
+    else
+        error_msg="Failed to start recording: $output"
+        echo "$error_msg" >&2
+        show_error_dialog "$error_msg"
+        exit 1
+    fi
+else
+    echo "Stopping recording..."
+    output=$(obs-cmd --websocket "obsws://$IP:$PORT/$PASSWORD" recording stop 2>&1)
+    exit_code=$?
+
+    if [ $exit_code -eq 0 ]; then
+        rm -f "$STATUS_FILE"
+        echo "Recording stopped successfully."
+    else
+        # remove status file and restart if recording is not running
+        if echo "$output" | grep -q "OutputNotRunning"; then
+            echo "Recording was not running, removing status file and try start recording."
+            rm -f "$STATUS_FILE"
+            exec "$0" "restarted"
+        else
+            error_msg="Failed to stop recording: $output"
+            echo "$error_msg" >&2
+            show_error_dialog "$error_msg"
+            exit 1
+        fi
+    fi
+fi
