@@ -23,17 +23,22 @@ pip install -r requirements.txt || { echo "Error: Failed to install requirements
 
 echo "Create run and update scripts."
 
-echo "#!/bin/bash" > run_gpu.sh
+echo "#\!/bin/bash" > run_gpu.sh
+echo "export HF_ENDPOINT=https://hf-mirror.com" >> run_gpu.sh
+echo "export HF_HUB_ENABLE_HF_TRANSFER=1" >> run_gpu.sh
 echo "source venv/bin/activate" >> run_gpu.sh
 echo "python main.py --preview-method auto --listen" >> run_gpu.sh
 chmod +x run_gpu.sh
 
-echo "#!/bin/bash" > run_cpu.sh
+echo "#\!/bin/bash" > run_cpu.sh
+echo "export HF_ENDPOINT=https://hf-mirror.com" >> run_cpu.sh
+echo "export HF_HUB_ENABLE_HF_TRANSFER=1" >> run_cpu.sh
 echo "source venv/bin/activate" >> run_cpu.sh
 echo "python main.py --preview-method auto --cpu --listen" >> run_cpu.sh
 chmod +x run_cpu.sh
 
-echo "#!/bin/bash" > update.sh
+echo "#\!/bin/bash" > update.sh
+echo "echo \"=====Updating.=====\"" >> update.sh
 echo "git pull --rebase || { echo \"Error: Update repository failed\"; exit 1; }" >> update.sh
 echo "source venv/bin/activate" >> update.sh
 echo "pip install -r requirements.txt || { echo \"Error: Failed to install requirements\"; exit 1; }" >> update.sh
